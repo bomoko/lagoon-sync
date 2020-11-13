@@ -6,16 +6,6 @@ import (
 	"time"
 )
 
-type PostgresSyncRoot struct {
-	Config         BasePostgresSync  `yaml:"config"`
-	LocalOverrides PostgresSyncLocal `yaml:"local"`
-	TransferId     string
-}
-
-type PostgresSyncLocal struct {
-	Config BasePostgresSync
-}
-
 type BasePostgresSync struct {
 	DbHostname       string   `yaml:"hostname"`
 	DbUsername       string   `yaml:"username"`
@@ -25,6 +15,16 @@ type BasePostgresSync struct {
 	ExcludeTable     []string `yaml:"exclude-table"`
 	ExcludeTableData []string `yaml:"exclude-table-data"`
 	OutputDirectory  string
+}
+
+type PostgresSyncLocal struct {
+	Config BasePostgresSync
+}
+
+type PostgresSyncRoot struct {
+	Config         BasePostgresSync
+	LocalOverrides PostgresSyncLocal `yaml:"local"`
+	TransferId     string
 }
 
 func (root PostgresSyncRoot) PrepareSyncer() Syncer {
@@ -46,13 +46,13 @@ func (root PostgresSyncRoot) GetRemoteCommand() string {
 		tablesWhoseDataToExclude += fmt.Sprintf("--exclude-table-data=%s.%s ", m.DbDatabase, s)
 	}
 
-	return fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump --no-owner -h%s -U%s -p%s %s %s %s > %s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, tablesToExclude, tablesWhoseDataToExclude, m.DbDatabase, transferResource.Name)
+	return fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump -h%s -U%s -p%s -d%s %s %s -Fc -w -f%s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, m.DbDatabase, tablesToExclude, tablesWhoseDataToExclude, transferResource.Name)
 }
 
 func (m PostgresSyncRoot) GetLocalCommand() string {
 	l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource()
-	return fmt.Sprintf("pg_restore --no-privileges --no-owner -U%s -d%s --clean < %s", l.DbUsername, l.DbDatabase, transferResource.Name)
+	return fmt.Sprintf("PGPASSWORD=\"%s\" pg_restore -c -x -w -h%s -d%s -p%s -U%s %s", l.DbPassword, l.DbHostname, l.DbDatabase, l.DbPort, l.DbUsername, transferResource.Name)
 }
 
 func (m PostgresSyncRoot) GetTransferResource() SyncerTransferResource {

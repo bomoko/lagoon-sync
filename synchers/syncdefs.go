@@ -21,11 +21,22 @@ type SyncerTransferResource struct {
 }
 
 type RemoteEnvironment struct {
-	ProjectName     string
-	EnvironmentName string
+	ProjectName            string
+	DefaultProjectName     string
+	EnvironmentName        string
+	DefaultEnvironmentName string
 }
 
 func (r RemoteEnvironment) getOpenshiftProjectName() string {
+
+	if r.ProjectName == "" {
+		r.ProjectName = r.DefaultProjectName
+	}
+
+	if r.EnvironmentName == "" {
+		r.EnvironmentName = r.DefaultEnvironmentName
+	}
+
 	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
 
