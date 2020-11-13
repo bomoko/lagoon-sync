@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/bomoko/lagoon-sync/synchers"
 	"github.com/spf13/cobra"
@@ -13,6 +14,24 @@ var ProjectName string
 var sourceEnvironmentName string
 var targetEnvironmentName string
 var configurationFile string
+
+func getEnv(key string, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+
+	return defaultVal
+}
+
+func detectLocalEnvironment() bool {
+	isLocal := false
+	if domain, exists := os.LookupEnv("LAGOON_DOMAIN"); exists {
+		// fmt.Println(domain)
+		isLocal = strings.Contains(domain, "docker.amazee.io")
+		return isLocal
+	}
+	return isLocal
+}
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
@@ -33,11 +52,6 @@ var syncCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		sourceEnvironment := synchers.RemoteEnvironment{
-			ProjectName:     ProjectName,
-			EnvironmentName: sourceEnvironmentName,
-		}
-
 		//TODO: we need some standard way of extracting the project name
 		// For now, let's just pull it straight from the .lagoon.yml
 
@@ -45,6 +59,15 @@ var syncCmd = &cobra.Command{
 		if err != nil {
 			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
 			return
+		}
+
+		defaultProjectName := fmt.Sprintf("%s", strings.Replace(getEnv("LAGOON_PROJECT", configRoot.Project), "_", "-", -1))
+
+		sourceEnvironment := synchers.RemoteEnvironment{
+			ProjectName:            ProjectName,
+			DefaultProjectName:     defaultProjectName,
+			EnvironmentName:        sourceEnvironmentName,
+			DefaultEnvironmentName: getEnv("LAGOON_GIT_BRANCH", ""),
 		}
 
 		var lagoonSyncer synchers.Syncer
@@ -83,9 +106,15 @@ func init() {
 	// and all subcommands, e.g.:
 	// syncCmd.PersistentFlags().String("foo", "", "A help for foo")
 	syncCmd.PersistentFlags().StringVar(&ProjectName, "project-name", "", "The Lagoon project name of the remote system")
-	syncCmd.MarkPersistentFlagRequired("project-name")
+	// syncCmd.MarkPersistentFlagRequired("project-name")
 	syncCmd.PersistentFlags().StringVar(&sourceEnvironmentName, "source-environment-name", "", "The Lagoon environment name of the source system")
-	syncCmd.MarkPersistentFlagRequired("source-environment-name")
+
+	isLocal := detectLocalEnvironment()
+	if isLocal {
+		fmt.Print("(Local) ")
+		syncCmd.MarkPersistentFlagRequired("source-environment-name")
+	}
+
 	syncCmd.PersistentFlags().StringVar(&targetEnvironmentName, "target-environment-name", "", "The Lagoon environment name of the source system (defaults to local)")
 	syncCmd.PersistentFlags().StringVar(&configurationFile, "configuration-file", "", "File containing sync configuration. Defaults to ./.lagoon.yml")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")

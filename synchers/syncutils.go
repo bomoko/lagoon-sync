@@ -57,8 +57,11 @@ func Shellout(command string) (error, string, string) {
 }
 
 func SyncRunRemote(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
+	project := remoteEnvironment.getOpenshiftProjectName()
+	fmt.Printf("Running remote command on: %s...", project)
+
 	execString := fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
-		remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand())
+		project, syncer.GetRemoteCommand())
 
 	err, outstring, errstring := Shellout(execString)
 
