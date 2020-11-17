@@ -13,7 +13,6 @@ import (
 var ProjectName string
 var sourceEnvironmentName string
 var targetEnvironmentName string
-var configurationFile string
 var noCliInteraction bool
 var dryRun bool
 
@@ -113,7 +112,6 @@ func init() {
 	syncCmd.PersistentFlags().StringVar(&sourceEnvironmentName, "source-environment-name", "", "The Lagoon environment name of the source system")
 	syncCmd.MarkPersistentFlagRequired("source-environment-name")
 	syncCmd.PersistentFlags().StringVar(&targetEnvironmentName, "target-environment-name", "", "The Lagoon environment name of the source system (defaults to local)")
-	syncCmd.PersistentFlags().StringVar(&configurationFile, "configuration-file", "./.lagoon.yml", "File containing sync configuration. Defaults to ./.lagoon.yml")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
